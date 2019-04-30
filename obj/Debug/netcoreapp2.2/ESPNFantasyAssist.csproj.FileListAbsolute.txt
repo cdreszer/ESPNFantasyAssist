@@ -1,0 +1,11 @@
+/Users/chasedreszer/Documents/ESPNFantasyAssist/obj/Debug/netcoreapp2.2/ESPNFantasyAssist.csprojAssemblyReference.cache
+/Users/chasedreszer/Documents/ESPNFantasyAssist/obj/Debug/netcoreapp2.2/ESPNFantasyAssist.csproj.CoreCompileInputs.cache
+/Users/chasedreszer/Documents/ESPNFantasyAssist/obj/Debug/netcoreapp2.2/ESPNFantasyAssist.AssemblyInfoInputs.cache
+/Users/chasedreszer/Documents/ESPNFantasyAssist/obj/Debug/netcoreapp2.2/ESPNFantasyAssist.AssemblyInfo.cs
+/Users/chasedreszer/Documents/ESPNFantasyAssist/bin/Debug/netcoreapp2.2/ESPNFantasyAssist.deps.json
+/Users/chasedreszer/Documents/ESPNFantasyAssist/bin/Debug/netcoreapp2.2/ESPNFantasyAssist.runtimeconfig.json
+/Users/chasedreszer/Documents/ESPNFantasyAssist/bin/Debug/netcoreapp2.2/ESPNFantasyAssist.runtimeconfig.dev.json
+/Users/chasedreszer/Documents/ESPNFantasyAssist/bin/Debug/netcoreapp2.2/ESPNFantasyAssist.dll
+/Users/chasedreszer/Documents/ESPNFantasyAssist/bin/Debug/netcoreapp2.2/ESPNFantasyAssist.pdb
+/Users/chasedreszer/Documents/ESPNFantasyAssist/obj/Debug/netcoreapp2.2/ESPNFantasyAssist.dll
+/Users/chasedreszer/Documents/ESPNFantasyAssist/obj/Debug/netcoreapp2.2/ESPNFantasyAssist.pdb
