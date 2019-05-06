@@ -30,7 +30,7 @@ namespace ESPNFantasyAssist {
                     {"BB", 0},
                     {"K", 0},
                     {"W", 0},
-                    {"S", 0}};
+                    {"SV", 0}};
         }
 
         public static Dictionary<int, string> BatterPositionByIndex() {

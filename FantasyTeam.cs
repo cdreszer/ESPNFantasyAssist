@@ -130,5 +130,59 @@ namespace ESPNFantasyAssist {
                 }
             }
         }
+
+        /// Gets all the stats from the passed in players as a list of players as a list of stats
+        public List<IList<object>> GetStatsAsListOfLists(List<Player> players, bool activeStats, bool areBatters) {
+            List<IList<object>> playerStats = new List<IList<object>>();
+
+            // Build header
+            string[] statCategories = areBatters ? Util.FinalBatterCategories : Util.FinalPitcherCategories;
+            List<object> categories = new List<object>();
+            categories.Add("Name");
+            categories.AddRange(statCategories);
+            playerStats.Add(categories);
+
+            foreach (Player player in players) {
+                if (player.HasStats(activeStats)) {
+                    playerStats.Add(player.GetStatsAsList(activeStats));
+                }
+            }
+
+            return playerStats;
+        }
+
+        public List<IList<object>> GetStatsByPositionAsListOfLists() {
+            return GetStatsAsListOfLists(StatsByPosition.Values.ToList(), true, true);
+        }
+
+        /// Returns a totals column in list format spreadsheet data format)
+        public List<IList<object>> GetTotalAsListOfLists(List<Player> players, bool activeStats, bool areBatters) {
+            List<Player> totals = new List<Player>();
+            Player total = new Player("TOTALS ", "", "", areBatters);
+
+            foreach (Player player in players) {
+                if (activeStats) {
+                    total.UpdateActiveTotals(player.ActiveTotals);
+                }
+                else {
+                    total.UpdateInactiveTotals(player.InactiveTotals);
+                }
+            }
+
+            totals.Add(total);
+
+            List<IList<object>> totalsAsListOfLists = GetStatsAsListOfLists(totals, activeStats, areBatters);
+
+            // removes header
+            if (totalsAsListOfLists.Count > 1) {
+                totalsAsListOfLists = totalsAsListOfLists.GetRange(1, 1);
+            }
+            else {
+                totalsAsListOfLists = new List<IList<object>>();
+            }
+
+            // returns just stats with no header
+            return totalsAsListOfLists;
+        }
     }
 }

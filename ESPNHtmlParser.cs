@@ -5,15 +5,14 @@ using System.Collections.Generic;
 
 namespace ESPNFantasyAssist {
     public static class HtmlParser {
-
         
         static DateTime FirstDay = new DateTime(2019, 03, 20);
-        static int DayOfSeason = 40; //Convert.ToInt32((DateTime.Today - FirstDay).TotalDays); // up to date day of season
-
+        static int DayOfSeason = Convert.ToInt32((DateTime.Today - FirstDay).TotalDays); // up to date day of season
+        
+        // If made multiple threads would cause runtime errors. (could make class not static)
+        static int pitcherIndex = 0;
         // modify to ./HTMLFiles/Dad/ for dads
-        static string HtmlPath = "./HTMLFiles/Dad/";
-        // modify to Chris Sale for dads 
-        static string FirstPitcher = "Chris Sale";//"Jacob deGrom";
+        static string HtmlPath = "./HTMLFiles/";
 
         /// CSS classes used to idetify fantasy baseball stat categories
         static String[] ScoringCat = {" stat-r ", " stat-hr ", " stat-rbi ", " stat-sb ", " stat-w ", " stat-k ", " stat-sv "};
@@ -36,6 +35,16 @@ namespace ESPNFantasyAssist {
                 {" stat-sv ", "SV"}
             };
 
+        /// Builds fantasy team fromt the first day of the season from specified HTML path 
+        /// - allows to use different directories for different teams
+        ///     ex. "./HTMLFiles/"      = my team, 
+        ///         "./HTMLFiles/Dad/"  = dads team
+        public static FantasyTeam BuildFantasyTeam(string HTMLPath) {
+            HtmlPath = HTMLPath;
+            return BuildFantasyTeam(); 
+        }
+
+        /// Builds fantasy team fromt the first day of the season.
         public static FantasyTeam BuildFantasyTeam() {
             // Store players in dictionary
             Dictionary<string, Player> PlayersById = new Dictionary<string, Player>();
@@ -51,7 +60,7 @@ namespace ESPNFantasyAssist {
                 PlayersById.Add(player.Id, player);
             }
 
-            return BuildFantasyTeam(PlayersById, team.StatsByPosition, team.LastDayUpdated, DayOfSeason);
+            return BuildFantasyTeam(PlayersById, team.StatsByPosition, team.LastDayUpdated + 1, DayOfSeason);
         }
 
         /// Given a dictionary of player ids to players builds a fantasy team starting from start date to end date.
@@ -120,32 +129,13 @@ namespace ESPNFantasyAssist {
         /// Gets an array of players with updated daily (active/inactive) stats from a certain day
         public static Player[] GetPlayersFromDay(int day) {
             HtmlDocument doc = LoadDocument(day);
-            
-            // searches for nodes with class 'player__column' that are not headers
-            var playerColumn = doc.DocumentNode.SelectNodes("//*[contains(@class, 'player__column') and not(contains(@class, 'header'))]");
+            Player[] players = GetInitialPlayersFromDocument(doc);
 
-            Player[] players = new Player[playerColumn.Count];
-
-            int index = 0;
-            int pitcherIndex = 0;
-            
-            // Creates a player for each player name found in document and adds to players array.
-            foreach (var player in playerColumn) {
-                string name = player.Attributes["title"].Value;
-                // Checks when pitchers start (should be better way)
-                if (name == FirstPitcher)
-                    pitcherIndex = index;
-
-                Player temp = new Player(name, "", "", pitcherIndex == 0);
-                players[index++] = temp;
-            }
-
-            index = 0;
             int playerIndex = 0;
 
-            // iterates through each category updating each player
+            // iterates through each stat category updating each player
             foreach (string catClass in AllCat) {
-                var category = doc.DocumentNode.SelectNodes(String.Concat("//*[contains(@class, '", catClass, "')]"));
+                var category = doc.DocumentNode.SelectNodes(String.Concat("//*[contains(@class, '", catClass, "') and not(contains(@class, 'header'))]"));
                 
                 // if pitcher update index
                 if (Array.IndexOf(PitcherCatClasses, catClass) >= 0) {
@@ -154,21 +144,31 @@ namespace ESPNFantasyAssist {
 
                 if (category != null) {
                     foreach (var playerStat in category) {
-                        // skip headers: scoring cat have 2 extra, non scoring cat (h/ab, ip, er, h, bb) have one extra
-                        if (index == 0 || (index == 1 && Array.IndexOf(ScoringCat, catClass) >= 0)) {
-                            index++;
-                        } 
                         // Update player with new stats.
-                        else {
-                            Player player = UpdatePlayer(((Player)players.GetValue(playerIndex)), catClass, playerStat.InnerText.ToString(), playerIndex, pitcherIndex);
-                            players[playerIndex++] = player;
-                            index++;
-                        }
+                        Player player = UpdatePlayer(((Player)players.GetValue(playerIndex)), catClass, playerStat.InnerText.ToString(), playerIndex, pitcherIndex);
+                        players[playerIndex++] = player;
                     }
                 }
 
-                index = 0;
                 playerIndex = 0;
+            }
+
+            return players;
+        }
+
+        public static Player[] GetInitialPlayersFromDocument(HtmlDocument doc) {
+            // searches for nodes with class 'player__column' that are not headers
+            var playerColumn = doc.DocumentNode.SelectNodes("//*[contains(@class, 'player__column') and not(contains(@class, 'header'))]");
+
+            Player[] players = new Player[playerColumn.Count];
+            pitcherIndex = GetPitcherIndex(doc, players.Length);
+            
+            // Creates a player for each player name found in document and adds to players array.
+            for (int index = 0; index < playerColumn.Count; index++) {
+                string name = playerColumn[index].Attributes["title"].Value;
+
+                Player temp = new Player(name, "", "", index < pitcherIndex);
+                players[index] = temp;
             }
 
             return players;
@@ -209,7 +209,7 @@ namespace ESPNFantasyAssist {
             return player;
         }
 
-        // Seperates Hits and Abs from 1/4 and returns them in a dictionary.
+        /// Seperates Hits and Abs from 1/4 and returns them in a dictionary.
         public static Dictionary<string, double> SeperateHitAndAbs(string value) {
             Dictionary<string, double> dailyTotal = new Dictionary<string, double>();
             double hits = 0;
@@ -227,18 +227,33 @@ namespace ESPNFantasyAssist {
             return dailyTotal;
         }
 
-        // Checks to see if the player is active.
+        /// Checks to see if the player is active.
         public static Boolean IsPlayerActive(int playerIndex, int pitcherIndex) {
             return !((playerIndex < pitcherIndex && playerIndex >= Util.NumActiveBatters) 
                     || (playerIndex >= pitcherIndex + Util.NumActivePitchers));
         }
 
+        /// Loads the HTML document given a day.
         public static HtmlDocument LoadDocument(int day) {
             HtmlDocument doc = new HtmlDocument();
             string path = HtmlPath + "day" + day + "HTML.html";
             doc.Load(path);
 
             return doc;
+        }
+
+        /// Finds the start of pitchers by subtracting instance of a pitching stat class from player count.
+        /// Should be better way to do this.
+        /// Previously checked by known first pitchers name.
+        public static int GetPitcherIndex(HtmlDocument doc, int playerCount) {
+            var category = doc.DocumentNode.SelectNodes(String.Concat("//*[contains(@class, '", PitcherCatClasses[0], "') and not(contains(@class, 'header'))]"));
+            int pitcherCount = 0;
+
+            if  (category != null) {
+                pitcherCount = category.Count;
+            }
+            
+            return playerCount - pitcherCount;
         }
     }
 }
